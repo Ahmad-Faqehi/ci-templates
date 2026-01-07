@@ -42,6 +42,7 @@ jobs: # 'jobs' must come after 'on'
             .spec.source.helm.values = "image:\n  tag: " + strenv(I_TAG) |
             .spec.destination.namespace = strenv(P_NS)
           ' helm-chart/argocd-template.yaml > "helm-chart/environments/${P_ENV}/applications/${P_NAME}.yaml"
+            cat helm-chart/environments/${P_ENV}/applications/${P_NAME}.yaml
 
       - name: Commit and Push changes
         working-directory: helm-chart
