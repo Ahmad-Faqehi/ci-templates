@@ -35,6 +35,7 @@ jobs: # 'jobs' must come after 'on'
           I_TAG: ${{ inputs.IMAGE_TAG }}
           P_NS: ${{ inputs.PROJECT_NAMESPACE }}
         run: |
+          mkdir -p helm-chart/environments/${P_ENV}/applications/
           yq '
             .metadata.name = strenv(P_NAME) |
             .spec.project = strenv(P_ENV) |
@@ -42,13 +43,25 @@ jobs: # 'jobs' must come after 'on'
             .spec.source.helm.values = "image:\n  tag: " + strenv(I_TAG) |
             .spec.destination.namespace = strenv(P_NS)
           ' helm-chart/argocd-template.yaml > "helm-chart/environments/${P_ENV}/applications/${P_NAME}.yaml"
-            cat helm-chart/environments/${P_ENV}/applications/${P_NAME}.yaml
+            
+
+      - name: Read The ArgoCD Application
+        env: # Map inputs to ENV variables for yq to see them
+          P_NAME: ${{ inputs.PROJECT_NAME }}
+          P_ENV: ${{ inputs.PROJECT_ENV }}
+        run: |
+          cat helm-chart/environments/${P_ENV}/applications/${P_NAME}.yaml
+
 
       - name: Commit and Push changes
+        env: # Map inputs to ENV variables for yq to see them
+          P_NAME: ${{ inputs.PROJECT_NAME }}
+          I_TAG: ${{ inputs.IMAGE_TAG }}
+          P_ENV: ${{ inputs.PROJECT_ENV }}
         working-directory: helm-chart
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           # Check if there are changes before committing to avoid erroring out
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update ${P_NAME} to ${I_TAG}" && git push origin main)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "UPDATE: ${P_NAME} to ${I_TAG} in ${P_ENV}" && git push origin main)
