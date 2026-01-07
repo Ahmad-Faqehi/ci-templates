@@ -1,0 +1,53 @@
+on:
+  workflow_call:
+    inputs:
+      PROJECT_NAME:
+        required: true
+        type: string
+      PROJECT_ENV:
+        required: true
+        type: string
+      IMAGE_TAG:
+        required: true
+        type: string
+      PROJECT_NAMESPACE:
+        required: true
+        type: string
+    secrets:
+      GITOPS_PAT:
+        required: true
+
+jobs: # 'jobs' must come after 'on'
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GitOps Repo
+        uses: actions/checkout@v4
+        with:
+          repository: Ahmad-Faqehi/helm-chart
+          token: ${{ secrets.GITOPS_PAT }}
+          path: helm-chart
+
+      - name: Update Image Tag
+        env: # Map inputs to ENV variables for yq to see them
+          P_NAME: ${{ inputs.PROJECT_NAME }}
+          P_ENV: ${{ inputs.PROJECT_ENV }}
+          I_TAG: ${{ inputs.IMAGE_TAG }}
+          P_NS: ${{ inputs.PROJECT_NAMESPACE }}
+        run: |
+          yq '
+            .metadata.name = strenv(P_NAME) |
+            .spec.project = strenv(P_ENV) |
+            .spec.source.helm.valueFiles[0] = "../projects/" + strenv(P_NAME) + "/values-" + strenv(P_ENV) + ".yaml" |
+            .spec.source.helm.values = "image:\n  tag: " + strenv(I_TAG) |
+            .spec.destination.namespace = strenv(P_NS)
+          ' helm-chart/argocd-template.yaml > "helm-chart/environments/${P_ENV}/applications/${P_NAME}.yaml"
+
+      - name: Commit and Push changes
+        working-directory: helm-chart
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          # Check if there are changes before committing to avoid erroring out
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update ${P_NAME} to ${I_TAG}" && git push origin main)
