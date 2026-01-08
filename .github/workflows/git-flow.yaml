@@ -2,45 +2,37 @@ name: Git Flow
 
 on:
   workflow_call:
-    # inputs:
-    #   image_name:
-    #     required: true
-    #     type: string
-    #   image_tag:
-    #     required: true
-    #     type: string
-    # secrets:
-    #   DOCKERHUB_USERNAME:
-    #     required: true
+    outputs:
+      ENV:
+        description: "Resolved environment"
+        value: ${{ jobs.build-and-push.outputs.ENV }}
 
 jobs:
-
- build-and-push:
+  build-and-push:
     if: |
       github.event_name == 'push' ||
       (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
+
     outputs:
       ENV: ${{ steps.env.outputs.ENV }}
 
     steps:
       - name: Set environment variables
         id: env
+        shell: bash
         run: |
-          echo ${{ github.event_name }}
-          echo ${{ github.base_ref }}
-          echo ${{ github.event.pull_request.merged }}
+          echo "Event: ${{ github.event_name }}"
+          echo "Base ref: ${{ github.base_ref }}"
+
           if [[ "${{ github.event_name }}" == "push" ]]; then
             echo "ENV=dev" >> $GITHUB_OUTPUT
-            echo "****  Pushed to development or feature branch ****"
           elif [[ "${{ github.base_ref }}" == "staging" ]]; then
             echo "ENV=staging" >> $GITHUB_OUTPUT
-            echo "****  Merged PR to staging branch ****"
           elif [[ "${{ github.base_ref }}" == "main" ]]; then
             echo "ENV=prod" >> $GITHUB_OUTPUT
-            echo "****  Merged PR to main branch ****"
           else
             echo "ENV=dev" >> $GITHUB_OUTPUT
-            echo "****  No matching environment so it will be dev ****"
           fi
-          echo "The env is: ${{ needs.build-and-push.outputs.ENV }}"
+
+          echo "Resolved ENV: ${{ steps.env.outputs.ENV }}"
