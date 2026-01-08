@@ -5,10 +5,10 @@ on:
     outputs:
       ENV:
         description: "Resolved environment"
-        value: ${{ jobs.build-and-push.outputs.ENV }}
+        value: ${{ jobs.env-detected.outputs.ENV }}
 
 jobs:
-  build-and-push:
+  env-detected:
     if: |
       github.event_name == 'push' ||
       (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
@@ -35,4 +35,4 @@ jobs:
             echo "ENV=dev" >> $GITHUB_OUTPUT
           fi
 
-          echo "Resolved ENV: ${{ steps.env.outputs.ENV }}"
+          echo "Resolved ENV: $GITHUB_OUTPUT"
