@@ -35,14 +35,18 @@ jobs: # 'jobs' must come after 'on'
           I_TAG: ${{ inputs.IMAGE_TAG }}
           P_NS: ${{ inputs.PROJECT_NAMESPACE }}
         run: |
+          # Convert PROJECT_NAME and PROJECT_NAMESPACE to lowercase
+          P_NAME_LOWER=$(echo "${{ inputs.PROJECT_NAME }}" | tr '[:upper:]' '[:lower:]')
+          P_NS_LOWER=$(echo "${{ inputs.PROJECT_NAMESPACE }}" | tr '[:upper:]' '[:lower:]')
+          
           mkdir -p helm-chart/environments/${P_ENV}/applications/
           yq '
-            .metadata.name = strenv(P_ENV) + "-" + strenv(P_NAME) |
+            .metadata.name = strenv(P_ENV) + "-" + env(P_NAME_LOWER) |
             .spec.project = strenv(P_ENV) |
-            .spec.source.helm.valueFiles[0] = "../projects/" + strenv(P_NAME) + "/values-" + strenv(P_ENV) + ".yaml" |
+            .spec.source.helm.valueFiles[0] = "../projects/" + env(P_NAME_LOWER) + "/values-" + strenv(P_ENV) + ".yaml" |
             .spec.source.helm.values = "image:\n  tag: " + strenv(I_TAG) |
-            .spec.destination.namespace = strenv(P_NS)
-          ' helm-chart/argocd-template.yaml > "helm-chart/environments/${P_ENV}/applications/${P_NAME}.yaml"
+            .spec.destination.namespace = env(P_NS_LOWER)
+          ' helm-chart/argocd-template.yaml > "helm-chart/environments/${P_ENV}/applications/${P_NAME_LOWER}.yaml"
             
 
       - name: Read The ArgoCD Application
@@ -50,7 +54,8 @@ jobs: # 'jobs' must come after 'on'
           P_NAME: ${{ inputs.PROJECT_NAME }}
           P_ENV: ${{ inputs.PROJECT_ENV }}
         run: |
-          cat helm-chart/environments/${P_ENV}/applications/${P_NAME}.yaml
+          P_NAME_LOWER=$(echo "${{ inputs.PROJECT_NAME }}" | tr '[:upper:]' '[:lower:]')
+          cat helm-chart/environments/${P_ENV}/applications/${P_NAME_LOWER}.yaml
 
 
       - name: Commit and Push changes
@@ -60,8 +65,9 @@ jobs: # 'jobs' must come after 'on'
           P_ENV: ${{ inputs.PROJECT_ENV }}
         working-directory: helm-chart
         run: |
+          P_NAME_LOWER=$(echo "${{ inputs.PROJECT_NAME }}" | tr '[:upper:]' '[:lower:]')
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           # Check if there are changes before committing to avoid erroring out
-          git diff --quiet && git diff --staged --quiet || (git commit -m "UPDATE: ${P_NAME} to ${I_TAG} in ${P_ENV}" && git push origin main)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "UPDATE: ${P_NAME_LOWER} to ${I_TAG} in ${P_ENV}" && git push origin main)

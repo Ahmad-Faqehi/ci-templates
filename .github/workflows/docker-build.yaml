@@ -20,13 +20,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Convert image name to lowercase
+        run: echo "IMAGE_NAME_LOWER=$(echo ${{ inputs.image_name }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - uses: docker/setup-buildx-action@v3
 
       - uses: docker/build-push-action@v5
         with:
           context: .
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:${{ inputs.image_tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME_LOWER }}:${{ inputs.image_tag }}
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
