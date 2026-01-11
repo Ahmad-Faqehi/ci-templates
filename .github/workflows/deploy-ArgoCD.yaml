@@ -37,7 +37,7 @@ jobs: # 'jobs' must come after 'on'
         run: |
           mkdir -p helm-chart/environments/${P_ENV}/applications/
           yq '
-            .metadata.name = strenv(P_NAME) |
+            .metadata.name = strenv(P_ENV) + "-" + strenv(P_NAME) |
             .spec.project = strenv(P_ENV) |
             .spec.source.helm.valueFiles[0] = "../projects/" + strenv(P_NAME) + "/values-" + strenv(P_ENV) + ".yaml" |
             .spec.source.helm.values = "image:\n  tag: " + strenv(I_TAG) |
