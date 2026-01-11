@@ -36,16 +36,16 @@ jobs: # 'jobs' must come after 'on'
           P_NS: ${{ inputs.PROJECT_NAMESPACE }}
         run: |
           # Convert PROJECT_NAME and PROJECT_NAMESPACE to lowercase
-          P_NAME_LOWER=$(echo "${{ inputs.PROJECT_NAME }}" | tr '[:upper:]' '[:lower:]')
-          P_NS_LOWER=$(echo "${{ inputs.PROJECT_NAMESPACE }}" | tr '[:upper:]' '[:lower:]')
+          export P_NAME_LOWER=$(echo "${{ inputs.PROJECT_NAME }}" | tr '[:upper:]' '[:lower:]')
+          export P_NS_LOWER=$(echo "${{ inputs.PROJECT_NAMESPACE }}" | tr '[:upper:]' '[:lower:]')
           
           mkdir -p helm-chart/environments/${P_ENV}/applications/
           yq '
-            .metadata.name = strenv(P_ENV) + "-" + env(P_NAME_LOWER) |
+            .metadata.name = strenv(P_ENV) + "-" + strenv(P_NAME_LOWER) |
             .spec.project = strenv(P_ENV) |
-            .spec.source.helm.valueFiles[0] = "../projects/" + env(P_NAME_LOWER) + "/values-" + strenv(P_ENV) + ".yaml" |
+            .spec.source.helm.valueFiles[0] = "../projects/" + strenv(P_NAME_LOWER) + "/values-" + strenv(P_ENV) + ".yaml" |
             .spec.source.helm.values = "image:\n  tag: " + strenv(I_TAG) |
-            .spec.destination.namespace = env(P_NS_LOWER)
+            .spec.destination.namespace = strenv(P_NS_LOWER)
           ' helm-chart/argocd-template.yaml > "helm-chart/environments/${P_ENV}/applications/${P_NAME_LOWER}.yaml"
             
 
